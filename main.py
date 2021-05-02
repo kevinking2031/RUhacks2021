@@ -128,9 +128,9 @@ async def tr_text(ctx, language, sentence):
 async def tr_text_error(ctx, error):
     print(error)
     if isinstance(error, commands.CommandInvokeError):
-        await ctx.send("Language not supported, please refer to https://slimysea55.qoom.space/PolyBot/about.html")
+        await ctx.send("Language not supported, please refer to https://slimysea55.qoom.space/PolyBot/commands.html")
     elif isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send("Missing argument(s), please refer to !help or https://slimysea55.qoom.space/PolyBot/about.html")
+        await ctx.send("Missing argument(s), please refer to !help or https://slimysea55.qoom.space/PolyBot/commands.html")
 
 
 @bot.command(description="Translate sentence into language of choice, to be outputted in text."
@@ -172,9 +172,9 @@ async def tr_audio(ctx, language, sentence):
 async def tr_audio_error(ctx, error):
     print(error)
     if isinstance(error, commands.CommandInvokeError):
-        await ctx.send("Voice not supported, please refer to https://slimysea55.qoom.space/PolyBot/about.html")
+        await ctx.send("Voice not supported, please refer to https://slimysea55.qoom.space/PolyBot/commands.html")
     elif isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send("Missing argument(s), please refer to !help or https://slimysea55.qoom.space/PolyBot/about.html")
+        await ctx.send("Missing argument(s), please refer to !help or https://slimysea55.qoom.space/PolyBot/commands.html")
 
 @bot.command(description="Outputs the question of the day, giving the user 30 seconds to respond",
              brief="Question of the day!")
