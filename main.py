@@ -1,10 +1,13 @@
 import asyncio
 import os
+from asyncio import sleep
 
 import discord
 from discord.ext import commands
+import audioread
 
 from settings_files._global import DISCORD_BOT_TOKEN
+FFMPEG_PATH = "ffmpeg-20200831-4a11a6f-win64-static/bin/ffmpeg.exe"
 
 bot = commands.Bot(command_prefix="!")
 question_of_day = "r u happy"
@@ -64,6 +67,24 @@ def textToSpeech(ctx, userLanguage, userText):
         out.write(response.audio_content)
         print('Audio content written to file "output.mp3"')
 
+async def joinToPlayAudio(ctx):
+    # User info
+    currUser = ctx.message.author
+    if (currUser.voice is None):
+        await ctx.send("You're currently not in a voice channel")
+        return
+
+    currUserVC = currUser.voice.channel
+    audioPath = "output.mp3"
+
+    vc = await currUserVC.connect()
+    await sleep(.5)
+    vc.play(discord.FFmpegPCMAudio(executable=FFMPEG_PATH, source=audioPath))
+    with audioread.audio_open(audioPath) as f:
+        # Start Playing
+        await sleep(f.duration)
+    await vc.disconnect()
+
 
 # for filename in os.listdir("./cogs"):
 #     if filename.endswith(".py") and filename != "__init__.py":
@@ -79,7 +100,6 @@ async def tr_text(ctx, language, sentence):
                           color=0x800080)
 
 
-
 @bot.command(description="Translate sentence into language of choice, to be outputted in text."
                          " Will also be played in user voice channel.",
              brief="Translate text to specified language, with audio.")
@@ -91,25 +111,28 @@ async def tr_audio(ctx, language, sentence):
     embed = discord.Embed(title="Text Translation", description=translation,
                           color=0x800080)
 
-    footer = "React to with ✅ within 5 seconds to replay translation"
-    embed.set_footer(text=footer)
+    await joinToPlayAudio(ctx)
 
-    my_msg = await ctx.send(embed=embed)
-    await asyncio.sleep(1)
+    currUser = ctx.message.author
+    if currUser.voice is not None:
+        footer = "React to with ✅ within 5 seconds to replay translation"
+        embed.set_footer(text=footer)
 
-    await my_msg.add_reaction("✅")
+        my_msg = await ctx.send(embed=embed)
+        await asyncio.sleep(1)
 
-    def check(reaction, user):
-        return user != my_msg.author and str(reaction.emoji) == '✅'
+        await my_msg.add_reaction("✅")
 
-    try:
-        await bot.wait_for('reaction_add', timeout=5.0, check=check)
-    except asyncio.TimeoutError:
-        embed.set_footer(text="Can no longer replay translation")
-        await my_msg.edit(embed=embed)
-    else:
-        await ctx.send('👍')  # put replay code here
+        def check(reaction, user):
+            return user != my_msg.author and str(reaction.emoji) == '✅'
 
+        try:
+            await bot.wait_for('reaction_add', timeout=5.0, check=check)
+        except asyncio.TimeoutError:
+            embed.set_footer(text="Can no longer replay translation")
+            await my_msg.edit(embed=embed)
+        else:
+            await joinToPlayAudio(ctx)
 
 @bot.command(description="Outputs the question of the day, giving the user 30 seconds to respond",
              brief="Question of the day!")
