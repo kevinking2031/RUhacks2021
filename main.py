@@ -4,8 +4,7 @@ import os
 import discord
 from discord.ext import commands
 
-# from settings_files._global import DISCORD_BOT_TOKEN
-DISCORD_BOT_TOKEN = "ODM4MDcxNTAzMTIzNzc1NTQ5.YI1w6A.09l1co6Lpx0IKXsp11yMNcPkAEc"
+from settings_files._global import DISCORD_BOT_TOKEN
 
 bot = commands.Bot(command_prefix="!")
 question_of_day = "r u happy"
