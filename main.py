@@ -6,18 +6,45 @@ from asyncio import sleep
 import discord
 from discord.ext import commands
 import audioread
+from google.api_core.exceptions import BadRequest
 
 from settings_files._global import DISCORD_BOT_TOKEN
-from dailyQuestions import QUESTIONS, ANSWERS
 
 FFMPEG_PATH = "ffmpeg-20200831-4a11a6f-win64-static/bin/ffmpeg.exe"
 
 bot = commands.Bot(command_prefix="!")
 
+def chooseRandomQuestion():
+    from dailyQuestions import QUESTIONS, ANSWERS
+
+    choice = random.randint(0,6)
+    question_of_day = QUESTIONS[choice]
+    answer_of_day = ANSWERS[choice]
+    return [question_of_day, answer_of_day]
+
+randomQuestionAndAns = chooseRandomQuestion()
+question_of_day = randomQuestionAndAns[0]
+answer_of_day = randomQuestionAndAns[1]
 scores = {}
 
 # For text to speech
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = 'demottsAccount.json'
+
+bot = commands.Bot(command_prefix='!', help_command=None)
+
+@bot.command()
+async def help(ctx):
+    commands = "```help\t\t   Shows this message.\n" \
+               "tr_text\t\tTranslate text to specified language.\n" \
+               "tr_audio\t   tr_text but with audio.\n" \
+               "tr_daily\t   Question of the day!\n" \
+               "tr_setdaily\tSet the question of the day for \"Teacher\"\n" \
+               "tr_leaderboard See rankings for dailies.\n```" \
+               "For more help, see https://slimysea55.qoom.space/PolyBot/commands.html"
+    embed = discord.Embed(title="PolyBot help", description=commands,
+                        color=0x800080)
+
+    await ctx.send(embed=embed)
 
 async def translateText(targetLanguage, userText):
     import six
@@ -36,7 +63,7 @@ async def translateText(targetLanguage, userText):
     print(u"Detected source language: {}".format(result["detectedSourceLanguage"]))
     return result
 
-def textToSpeech(userLanguage, userText):
+def textToSpeech(ctx, userLanguage, userText):
     from google.cloud import texttospeech
     from google.cloud import texttospeech_v1
 
@@ -88,14 +115,6 @@ async def joinToPlayAudio(ctx):
         await sleep(f.duration)
     await vc.disconnect()
 
-
-def chooseRandomQuestion():
-    choice = random.randint(0,6)
-    question_of_day = QUESTIONS[choice]
-    answer_of_day = ANSWERS[choice]
-    return [question_of_day, answer_of_day]
-
-
 @bot.command(description="Translate sentence into language of choice, to be outputted in text.",
              brief="Translate text to specified language.")
 async def tr_text(ctx, language, sentence):
@@ -105,17 +124,25 @@ async def tr_text(ctx, language, sentence):
                           color=0x800080)
     await ctx.send(embed=embed)
 
+@tr_text.error
+async def tr_text_error(ctx, error):
+    print(error)
+    if isinstance(error, commands.CommandInvokeError):
+        await ctx.send("Language not supported, please refer to https://slimysea55.qoom.space/PolyBot/about.html")
+    elif isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send("Missing argument(s), please refer to !help or https://slimysea55.qoom.space/PolyBot/about.html")
+
 
 @bot.command(description="Translate sentence into language of choice, to be outputted in text."
                          " Will also be played in user voice channel.",
              brief="Translate text to specified language, with audio.")
 async def tr_audio(ctx, language, sentence):
     result = await translateText(language, sentence)
-    textToSpeech(language, result["translatedText"])
+    textToSpeech(ctx, language, result["translatedText"])
 
     translation = result["translatedText"]  # add translation code from google api
     embed = discord.Embed(title="Text Translation", description=translation,
-                          color=0x800080)
+                        color=0x800080)
 
     await joinToPlayAudio(ctx)
 
@@ -131,23 +158,28 @@ async def tr_audio(ctx, language, sentence):
         await my_msg.add_reaction("✅")
 
         def check(reaction, user):
-            return user != my_msg.author and str(reaction.emoji) == '✅'
+                return user != my_msg.author and str(reaction.emoji) == '✅'
 
         try:
-            await bot.wait_for('reaction_add', timeout=5.0, check=check)
+                await bot.wait_for('reaction_add', timeout=5.0, check=check)
         except asyncio.TimeoutError:
             embed.set_footer(text="Can no longer replay translation")
             await my_msg.edit(embed=embed)
         else:
             await joinToPlayAudio(ctx)
 
+@tr_audio.error
+async def tr_audio_error(ctx, error):
+    print(error)
+    if isinstance(error, commands.CommandInvokeError):
+        await ctx.send("Voice not supported, please refer to https://slimysea55.qoom.space/PolyBot/about.html")
+    elif isinstance(error, commands.MissingRequiredArgument):
+        await ctx.send("Missing argument(s), please refer to !help or https://slimysea55.qoom.space/PolyBot/about.html")
 
 @bot.command(description="Outputs the question of the day, giving the user 30 seconds to respond",
              brief="Question of the day!")
 async def tr_daily(ctx):
-    randomQuestionAndAns = chooseRandomQuestion()
-
-    description = "Fill in the missing word based on the translation!\n\n" + randomQuestionAndAns[0]
+    description = "Fill in the missing word based on the translation!\n\n" + question_of_day
 
     embed = discord.Embed(title="Question of the Day!",
                           description=description, color=0x800080)
@@ -155,7 +187,7 @@ async def tr_daily(ctx):
     await ctx.send(embed=embed)
 
     def check(m):
-        return m.content.lower() == randomQuestionAndAns[1] and m.channel == ctx.channel
+        return m.content.lower() == answer_of_day and m.channel == ctx.channel
 
     try:
         msg = await bot.wait_for('message', timeout=30.0, check=check)
@@ -176,10 +208,9 @@ async def tr_daily(ctx):
                          " filled in by students",
              brief="Set the question of the day. Can only be done by users with the \"Teacher\" role.")
 @commands.has_role('Teacher')
-async def set_daily(ctx):
-    randomQuestionAndAns = chooseRandomQuestion()
-    question_of_day = randomQuestionAndAns[0]
-    answer_of_day = randomQuestionAndAns[1]
+async def tr_setdaily(ctx):
+    global question_of_day
+    global answer_of_day
 
     await ctx.send('Enter the english sentence.')
     message = await bot.wait_for('message')
@@ -208,14 +239,14 @@ async def set_daily(ctx):
     await ctx.send('This is the question of the day: ' + question_of_day
                    + '\nIf this is incorrect, please redo the setting process.')
 
-@set_daily.error
-async def set_daily_error(ctx, error):
+@tr_setdaily.error
+async def tr_setdaily_error(ctx, error):
     if isinstance(error, (commands.MissingRole, commands.MissingAnyRole)):
         await ctx.send("*You do not have permission to do this.*")
 
 
 @bot.command(description="Check the current leaderboard for daily questions!", brief="See rankings for dailies.")
-async def leaderboard(ctx):
+async def tr_leaderboard(ctx):
     global scores
     dict(sorted(scores.items(), key=lambda item: item[1]))
     description = ""
