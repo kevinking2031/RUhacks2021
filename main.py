@@ -14,6 +14,8 @@ FFMPEG_PATH = "ffmpeg-20200831-4a11a6f-win64-static/bin/ffmpeg.exe"
 
 bot = commands.Bot(command_prefix="!")
 
+scores = {}
+
 # For text to speech
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = 'demottsAccount.json'
 
@@ -163,13 +165,20 @@ async def tr_daily(ctx):
     except asyncio.TimeoutError:
         await ctx.send("Unfortunately, you didn't answer correctly.")
     else:
-        await ctx.send("Congratulations, {.author}, you answered correctly!".format(msg))
+        global scores
+        if msg.author in scores:
+            scores[msg.author] += 1
+        else:
+            scores[msg.author] = 1
+        await ctx.send("Congratulations, {.author}, you answered correctly! Your score is now {}."
+                       .format(msg, scores[msg.author]))
 
 
 @bot.command(description="Set the question of the day. Can only be done by users with the \"Teacher\" role. "
                          "The format of the question is to have a sentence with a word removed and have the word"
                          " filled in by students",
              brief="Set the question of the day. Can only be done by users with the \"Teacher\" role.")
+@commands.has_role('Teacher')
 async def set_daily(ctx):
     randomQuestionAndAns = chooseRandomQuestion()
     question_of_day = randomQuestionAndAns[0]
@@ -193,5 +202,21 @@ async def set_daily(ctx):
     await ctx.send('This is the question of the day: ' + question_of_day
                    + '\nIf this is incorrect, please redo the setting process.')
 
+
+@bot.command(description="Check the current leaderboard for daily questions!", brief="See rankings for dailies.")
+async def leaderboard(ctx):
+    global scores
+    dict(sorted(scores.items(), key=lambda item: item[1]))
+    description = ""
+
+    if len(scores) == 0:
+        await ctx.send("There are no scores to display.")
+    else:
+        for key in scores:
+            description += str(key) + " --- " + str(scores[key]) + "\n"
+
+        embed = discord.Embed(title="Leaderboard", description=description,
+                          color=0x800080)
+        await ctx.send(embed=embed)
 
 bot.run(DISCORD_BOT_TOKEN)
