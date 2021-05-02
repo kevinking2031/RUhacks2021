@@ -98,6 +98,7 @@ async def tr_text(ctx, language, sentence):
     translation = result["translatedText"]  # add translation code from google api
     embed = discord.Embed(title="Text Translation", description=translation,
                           color=0x800080)
+    await ctx.send(embed=embed)
 
 
 @bot.command(description="Translate sentence into language of choice, to be outputted in text."
@@ -118,9 +119,10 @@ async def tr_audio(ctx, language, sentence):
         footer = "React to with ✅ within 5 seconds to replay translation"
         embed.set_footer(text=footer)
 
-        my_msg = await ctx.send(embed=embed)
-        await asyncio.sleep(1)
+    my_msg = await ctx.send(embed=embed)
+    await asyncio.sleep(1)
 
+    if currUser.voice is not None:
         await my_msg.add_reaction("✅")
 
         def check(reaction, user):
