@@ -16,7 +16,7 @@ answer_of_day = "yes"
 # For text to speech
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = 'demottsAccount.json'
 
-async def translateText(ctx, targetLanguage, userText):
+async def translateText(targetLanguage, userText):
     import six
     from google.cloud import translate_v2 as translate
 
@@ -33,7 +33,7 @@ async def translateText(ctx, targetLanguage, userText):
     print(u"Detected source language: {}".format(result["detectedSourceLanguage"]))
     return result
 
-def textToSpeech(ctx, userLanguage, userText):
+def textToSpeech(userLanguage, userText):
     from google.cloud import texttospeech
     from google.cloud import texttospeech_v1
 
@@ -94,7 +94,7 @@ async def joinToPlayAudio(ctx):
 @bot.command(description="Translate sentence into language of choice, to be outputted in text.",
              brief="Translate text to specified language.")
 async def tr_text(ctx, language, sentence):
-    result = await translateText(ctx, language, sentence)
+    result = await translateText(language, sentence)
     translation = result["translatedText"]  # add translation code from google api
     embed = discord.Embed(title="Text Translation", description=translation,
                           color=0x800080)
@@ -105,8 +105,8 @@ async def tr_text(ctx, language, sentence):
                          " Will also be played in user voice channel.",
              brief="Translate text to specified language, with audio.")
 async def tr_audio(ctx, language, sentence):
-    result = await translateText(ctx, language, sentence)
-    textToSpeech(ctx, language, result["translatedText"])
+    result = await translateText(language, sentence)
+    textToSpeech(language, result["translatedText"])
 
     translation = result["translatedText"]  # add translation code from google api
     embed = discord.Embed(title="Text Translation", description=translation,
