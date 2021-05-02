@@ -1,5 +1,6 @@
 import asyncio
 import os
+import random
 from asyncio import sleep
 
 import discord
@@ -7,11 +8,11 @@ from discord.ext import commands
 import audioread
 
 from settings_files._global import DISCORD_BOT_TOKEN
+from dailyQuestions import QUESTIONS, ANSWERS
+
 FFMPEG_PATH = "ffmpeg-20200831-4a11a6f-win64-static/bin/ffmpeg.exe"
 
 bot = commands.Bot(command_prefix="!")
-question_of_day = "r u happy"
-answer_of_day = "yes"
 
 # For text to speech
 os.environ['GOOGLE_APPLICATION_CREDENTIALS'] = 'demottsAccount.json'
@@ -86,6 +87,12 @@ async def joinToPlayAudio(ctx):
     await vc.disconnect()
 
 
+def chooseRandomQuestion():
+    choice = random.randint(0,6)
+    question_of_day = QUESTIONS[choice]
+    answer_of_day = ANSWERS[choice]
+    return [question_of_day, answer_of_day]
+
 # for filename in os.listdir("./cogs"):
 #     if filename.endswith(".py") and filename != "__init__.py":
 #         bot.load_extension(f'cogs.{filename[:-3]}')
@@ -139,7 +146,9 @@ async def tr_audio(ctx, language, sentence):
 @bot.command(description="Outputs the question of the day, giving the user 30 seconds to respond",
              brief="Question of the day!")
 async def tr_daily(ctx):
-    description = "Fill in the missing word based on the translation!\n\n" + question_of_day
+    randomQuestionAndAns = chooseRandomQuestion()
+
+    description = "Fill in the missing word based on the translation!\n\n" + randomQuestionAndAns[0]
 
     embed = discord.Embed(title="Question of the Day!",
                           description=description, color=0x800080)
@@ -147,7 +156,7 @@ async def tr_daily(ctx):
     await ctx.send(embed=embed)
 
     def check(m):
-        return m.content.lower() == answer_of_day and m.channel == ctx.channel
+        return m.content.lower() == randomQuestionAndAns[1] and m.channel == ctx.channel
 
     try:
         msg = await bot.wait_for('message', timeout=30.0, check=check)
@@ -162,7 +171,9 @@ async def tr_daily(ctx):
                          " filled in by students",
              brief="Set the question of the day. Can only be done by users with the \"Teacher\" role.")
 async def set_daily(ctx):
-    global question_of_day, answer_of_day
+    randomQuestionAndAns = chooseRandomQuestion()
+    question_of_day = randomQuestionAndAns[0]
+    answer_of_day = randomQuestionAndAns[1]
 
     await ctx.send('Enter the english sentence.')
     sentence = await bot.wait_for('message')
