@@ -182,22 +182,36 @@ async def set_daily(ctx):
     answer_of_day = randomQuestionAndAns[1]
 
     await ctx.send('Enter the english sentence.')
-    sentence = await bot.wait_for('message')
-    sentence = sentence.content.lower()
+    message = await bot.wait_for('message')
+    while message.author != ctx.author:
+        print(message.author)
+        message = await bot.wait_for('message')
+    sentence = message.content.lower()
 
     await ctx.send('Enter the translated sentence.')
-    translation = await bot.wait_for('message')
-    translation = translation.content.lower()
+    message = await bot.wait_for('message')
+    while message.author != ctx.author:
+        print(message.author)
+        message = await bot.wait_for('message')
+    translation = message.content.lower()
 
     await ctx.send('Enter the answer/word to be removed.')
-    word = await bot.wait_for('message')
-    word = word.content.lower()
+    message = await bot.wait_for('message')
+    while message.author != ctx.author:
+        print(message.author)
+        message = await bot.wait_for('message')
+    word = message.content.lower()
 
     question_of_day = "English: " + sentence + "\nTranslation: " + translation.replace(word, "\\_ " * len(word))
     answer_of_day = word
 
     await ctx.send('This is the question of the day: ' + question_of_day
                    + '\nIf this is incorrect, please redo the setting process.')
+
+@set_daily.error
+async def set_daily_error(ctx, error):
+    if isinstance(error, (commands.MissingRole, commands.MissingAnyRole)):
+        await ctx.send("*You do not have permission to do this.*")
 
 
 @bot.command(description="Check the current leaderboard for daily questions!", brief="See rankings for dailies.")
