@@ -95,10 +95,6 @@ def chooseRandomQuestion():
     answer_of_day = ANSWERS[choice]
     return [question_of_day, answer_of_day]
 
-# for filename in os.listdir("./cogs"):
-#     if filename.endswith(".py") and filename != "__init__.py":
-#         bot.load_extension(f'cogs.{filename[:-3]}')
-
 
 @bot.command(description="Translate sentence into language of choice, to be outputted in text.",
              brief="Translate text to specified language.")
@@ -144,6 +140,7 @@ async def tr_audio(ctx, language, sentence):
             await my_msg.edit(embed=embed)
         else:
             await joinToPlayAudio(ctx)
+
 
 @bot.command(description="Outputs the question of the day, giving the user 30 seconds to respond",
              brief="Question of the day!")
